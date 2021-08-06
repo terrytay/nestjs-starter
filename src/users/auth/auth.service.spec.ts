@@ -9,10 +9,23 @@ describe('AuthService', () => {
   let mockUsersService: Partial<UsersService>;
 
   beforeEach(async () => {
+    const users: User[] = [];
+
     mockUsersService = {
-      find: () => Promise.resolve([]),
-      create: (email: string, password: string) =>
-        Promise.resolve({ id: 1, email, password } as User),
+      find: (email: string) => {
+        const filteredUsers = users.filter((user) => user.email === email);
+        return Promise.resolve(filteredUsers);
+      },
+
+      create: (email: string, password: string) => {
+        const user = {
+          id: Math.random() * 999,
+          email,
+          password,
+        } as User;
+        users.push(user);
+        return Promise.resolve(user);
+      },
     };
 
     const module = await Test.createTestingModule({
@@ -42,13 +55,9 @@ describe('AuthService', () => {
 
   it('throws an error if user signs up with email that is in use', async () => {
     const [email, password] = ['test@test.com', 'password'];
-
-    // return of non-empty array in mock implementation of find() means that email exists in db.
-    mockUsersService.find = () =>
-      Promise.resolve([{ id: 1, email, password } as User]);
+    await service.signup(email, password);
 
     try {
-      // dont expect to get a user object and hence just await
       await service.signup(email, password);
     } catch (e) {
       expect(e).toBeInstanceOf(BadRequestException);
@@ -61,5 +70,22 @@ describe('AuthService', () => {
     } catch (e) {
       expect(e).toBeInstanceOf(BadRequestException);
     }
+  });
+
+  it('throws if supplied password is invalid', async () => {
+    await service.signup('test@test.com', 'password');
+
+    try {
+      await service.signin('test@test.com', 'fsdfsdf');
+    } catch (e) {
+      expect(e).toBeInstanceOf(BadRequestException);
+    }
+  });
+
+  it('returns a user if valid email and password is provided', async () => {
+    await service.signup('test@test.com', 'password');
+
+    const user = await service.signin('test@test.com', 'password');
+    expect(user).toBeDefined();
   });
 });
