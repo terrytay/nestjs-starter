@@ -1,5 +1,6 @@
 import { rm } from 'fs/promises';
 import { join } from 'path';
+import { getConnection } from 'typeorm';
 
 global.beforeEach(async () => {
   try {
@@ -8,4 +9,9 @@ global.beforeEach(async () => {
   } catch (e) {
     console.log('No test database to delete');
   }
+});
+
+global.afterEach(async () => {
+  const connection = getConnection();
+  await connection.close();
 });
