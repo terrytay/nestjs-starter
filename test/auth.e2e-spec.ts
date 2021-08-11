@@ -15,17 +15,34 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/auth/signup (POST) signs up a new user', () => {
+  it('/auth/signup (POST) signs up a new user', async () => {
     const newEmail = 'test123456@gmail.com';
 
-    return request(app.getHttpServer())
+    const response = await request(app.getHttpServer())
       .post('/auth/signup')
       .send({ email: newEmail, password: '123' })
-      .expect(201)
-      .then((response) => {
-        const { id, email } = response.body;
-        expect(id).toBeDefined();
-        expect(email).toEqual(newEmail);
-      });
+      .expect(201);
+
+    const { id, email } = response.body;
+    expect(id).toBeDefined();
+    expect(email).toEqual(newEmail);
+  });
+
+  it('signup a new user and get the currently logged in user', async () => {
+    const newEmail = 'test123@gmai.com';
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email: newEmail, password: '123' })
+      .expect(201);
+
+    const cookie = response.get('Set-Cookie');
+
+    const { body } = await request(app.getHttpServer())
+      .get('/auth/whoami')
+      .set('Cookie', cookie)
+      .expect(200);
+
+    expect(body.email).toEqual(newEmail);
   });
 });
